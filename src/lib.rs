@@ -23,7 +23,23 @@ pub struct AccountInformation {
     pub history_buy: Vector<String>,
     pub history_sell: Vector<String>,
     
-    pub bank_account: UnorderedMap<String, String>,
+    pub bank_number: String,
+    pub bank_name: String,
+
+    pub vote_up: u128,
+    pub vote_down: u128,
+}
+
+
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct SellInformation {
+    pub balance: Balance, 
+    pub available: Balance,
+    pub price: Balance,
+    
+    pub bank_number: String,
+    pub bank_name: String,
 
     pub vote_up: u128,
     pub vote_down: u128,
@@ -43,7 +59,6 @@ pub struct History {
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct SimpleP2P {
     pub accounts: UnorderedMap<AccountId, AccountInformation>,
-    // pub processing: LookupMap<String, History>,
     pub historys: LookupMap<String, History>,
 }
 
@@ -61,7 +76,6 @@ impl SimpleP2P {
         assert!(!env::state_exists(), "Already initialized");
         Self {
             accounts: UnorderedMap::new(b"a".to_vec()),
-            // processing: LookupMap::new(b"p".to_vec()),
             historys: LookupMap::new(b"h".to_vec()),
         }
     }
@@ -77,7 +91,8 @@ impl SimpleP2P {
                 price: 0,
                 history_buy: Vector::new(Vec::new()),
                 history_sell: Vector::new(Vec::new()),
-                bank_account: UnorderedMap::new(b"n".to_vec()),
+                bank_number: "".to_string(),
+                bank_name: "".to_string(),
                 vote_up: 0,
                 vote_down: 0,
             };
@@ -86,13 +101,14 @@ impl SimpleP2P {
         self.accounts.insert(&account_id, &account_information);
     }
 
-    pub fn set_bank_account(&mut self, number: String, type_account: String){
+    pub fn set_bank_account(&mut self, number: String, bank_name: String){
         let account_id = env::signer_account_id();
 
         let account_got = self.accounts.get(&account_id);
         assert!(account_got.is_some(), "don't exist this account, please deposit some for create account");
         let mut account_information = account_got.unwrap();
-        account_information.bank_account.insert(&number, &type_account);
+        account_information.bank_number = number;
+        account_information.bank_name = bank_name;
         self.accounts.insert(&account_id,&account_information);
     }
 
@@ -113,7 +129,7 @@ impl SimpleP2P {
         
         let mut account_information = account_got.unwrap();
         assert!(account_information.balance > amount, "Insufficient balance to order");
-
+        assert!(account_information.bank_number != "".to_string(),"must set bank account");
         account_information.balance = account_information.balance - amount;
         account_information.available = account_information.available +amount;
         account_information.price = price;
@@ -150,19 +166,22 @@ impl SimpleP2P {
         let buyer_id = env::signer_account_id();
         let account_buyer_got = self.accounts.get(&buyer_id);
         assert!(account_buyer_got.is_some(), "buyer account is not exist!");
-
+        let mut account_buyer = account_buyer_got.unwrap();
         // create transaction
         let tx = SimpleP2P::get_hash(&buyer_id,&seller_id,&amount);
         let history = History{
-            buyer: buyer_id,
+            buyer: buyer_id.clone(),
             seller: seller_id.clone(),
             amount: amount,
             state: "init".to_string(),
         };
 
         // update into contract
+        account_seller.history_sell.push(&tx);
+        account_buyer.history_buy.push(&tx);
         self.historys.insert(&tx,&history);
         self.accounts.insert(&seller_id,&account_seller);
+        self.accounts.insert(&buyer_id,&account_buyer);
     }
 
     pub fn confirm_sent(&mut self, tx:String){
@@ -244,9 +263,9 @@ impl SimpleP2P {
         }
     }
 
-    pub fn get_order_sell(&self){
-
-    }
+    // pub fn get_order_sell(&self)->Vec<SellInformation>{
+        
+    // }
 
     // pub fn get_account(&self, account_id: AccountId)->AccountInformation{
     //     let account_got = self.accounts.get(&account_id);
@@ -258,6 +277,34 @@ impl SimpleP2P {
         let transaction = self.historys.get(&tx);
         assert!(transaction.is_some(),"khong ton tai transaction");
         transaction.unwrap()
+    }
+
+    pub fn get_history_buy(&self, account_id: AccountId)->Vec<History>{
+        let account_got = self.accounts.get(&account_id);
+        assert!(account_got.is_some(),"tai khoan ko ton tai");
+        let account = account_got.unwrap();
+
+        let history = account.history_buy;
+        let mut result = Vec::new();
+
+        for x in history.iter() {
+            result.push(self.historys.get(&x).unwrap());
+        }
+        result
+    }
+
+    pub fn get_history_sell(&self, account_id: AccountId)->Vec<History>{
+        let account_got = self.accounts.get(&account_id);
+        assert!(account_got.is_some(),"tai khoan ko ton tai");
+        let account = account_got.unwrap();
+
+        let history = account.history_sell;
+        let mut result = Vec::new();
+
+        for x in history.iter() {
+            result.push(self.historys.get(&x).unwrap());
+        }
+        result
     }
 
 }
