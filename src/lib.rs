@@ -25,8 +25,8 @@ pub struct AccountInformation {
     
     pub bank_account: UnorderedMap<String, String>,
 
-    pub vote_up: U128,
-    pub vote_down: U128,
+    pub vote_up: u128,
+    pub vote_down: u128,
 }
 
 // #[derive(BorshDeserialize, BorshSerialize)]
@@ -78,8 +78,8 @@ impl SimpleP2P {
                 history_buy: Vector::new(Vec::new()),
                 history_sell: Vector::new(Vec::new()),
                 bank_account: UnorderedMap::new(b"n".to_vec()),
-                vote_up: 0.into(),
-                vote_down: 0.into(),
+                vote_up: 0,
+                vote_down: 0,
             };
         let mut account_information = self.accounts.get(&account_id).unwrap_or(default);
         account_information.balance = account_information.balance + deposit;
@@ -220,8 +220,28 @@ impl SimpleP2P {
         
     }
 
-    pub fn vote(&mut self, account_id:AccountId, value: u8){
-        
+    pub fn vote(&mut self, account_id:AccountId, value: i8){
+        if value == 1 || value == -1{
+            let sign_id = env::signer_account_id();
+            assert!(sign_id != account_id, "khoong theer tuwj vote");
+
+            let account_got = self.accounts.get(&account_id);
+            assert!(account_got.is_some(),"tai khoan ban vore ko ton tai");
+            let mut account = account_got.unwrap();
+
+            if value == 1{
+                account.vote_up += 1;
+            }else{
+                account.vote_down += 1;
+            }
+
+
+            // update contract
+            self.accounts.insert(&account_id, &account);
+        }
+        else {
+            panic!("gias trij truyeenf vao ko hoop le");
+        }
     }
 
     pub fn get_order_sell(&self){
