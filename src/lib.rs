@@ -4,7 +4,7 @@ use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     env, near_bindgen,AccountId, Balance,
     collections::{ UnorderedMap, Vector,LookupMap },
-    json_types::{ U128},
+    // json_types::{ U128},
 };
 use chrono::Utc;
 use blake2::{Blake2s, Digest};
@@ -16,8 +16,8 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct AccountInformation {
-    pub balance: Balance, 
-    pub available: Balance,
+    pub balance: Balance,   
+    pub available: Balance, 
     pub price: Balance,
 
     pub history_buy: Vector<String>,
@@ -45,14 +45,14 @@ pub struct SellInformation {
     pub vote_down: u128,
 }
 
-// #[derive(BorshDeserialize, BorshSerialize)]
+
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct History {
-    pub buyer: AccountId,
-    pub seller: AccountId,
-    pub amount: Balance,
-    pub state: String, // init, processing, cancel, success,
+    pub buyer: AccountId,   // id of buyer
+    pub seller: AccountId,  // id of seller
+    pub amount: Balance,    // transaction amount 
+    pub state: String,      // init, processing, cancel, success,
 }
 
 #[near_bindgen]
@@ -72,7 +72,6 @@ impl Default for SimpleP2P {
 impl SimpleP2P {
     #[init]
     pub fn new()->Self{
-        // assert!(env::is_valid_account_id(owner_id.as_bytes()), "Invalid owner account");
         assert!(!env::state_exists(), "Already initialized");
         Self {
             accounts: UnorderedMap::new(b"a".to_vec()),
@@ -80,6 +79,7 @@ impl SimpleP2P {
         }
     }
 
+    // create and deposit money
     #[payable]
     pub fn deposit(&mut self){
         let account_id = env::signer_account_id();
@@ -101,72 +101,70 @@ impl SimpleP2P {
         self.accounts.insert(&account_id, &account_information);
     }
 
+    // withdraw money to near testnet wallet
+    #[payable]
+    pub fn withdraw(&mut self){
+
+    }
+
+    // set bank number and bank name as payment method
     pub fn set_bank_account(&mut self, number: String, bank_name: String){
         let account_id = env::signer_account_id();
-
+        
+        // check account exist
         let account_got = self.accounts.get(&account_id);
-        assert!(account_got.is_some(), "don't exist this account, please deposit some for create account");
+        assert!(account_got.is_some(), "Account does not exist, deposit some money to create an account");
+        
+        // update bank number and bank name
         let mut account_information = account_got.unwrap();
         account_information.bank_number = number;
         account_information.bank_name = bank_name;
         self.accounts.insert(&account_id,&account_information);
     }
 
-    #[payable]
-    pub fn withdraw(&mut self){
-
-    }
-
+    // place order sell
     pub fn order_sell(&mut self, amount: Balance, price: Balance){
+        // check amount and price must > 0
         assert!(amount > 0, "Amount must > 0");
         assert!(price > 0, "Price must > 0");
 
-
+        // check account exist
         let account_id = env::signer_account_id();
-
         let account_got = self.accounts.get(&account_id);
-        assert!(account_got.is_some(), "don't exist this account, please deposit some for create account");
+        assert!(account_got.is_some(), "Account does not exist, deposit some money to create an account ");
         
+        // check enough balance
         let mut account_information = account_got.unwrap();
-        assert!(account_information.balance > amount, "Insufficient balance to order");
-        assert!(account_information.bank_number != "".to_string(),"must set bank account");
+        assert!(account_information.balance > amount, "Insufficient balance to order sell");
+        
+        // check the account that has set the payment method 
+        assert!(account_information.bank_number != "".to_string(),"Must set payment method");
+        
+        // update sell order
         account_information.balance = account_information.balance - amount;
         account_information.available = account_information.available +amount;
         account_information.price = price;
         self.accounts.insert(&account_id, &account_information);
     }
 
-    pub fn get_hash(buyer:&String, seller:&String, amount:&Balance)->String{
-        
-        let dt = Utc::now();
-        let timestamp: i64 = dt.timestamp();
-
-        let hash = Blake2s::new()
-            .chain(buyer)
-            .chain(seller)
-            .chain(amount.to_string())
-            .chain(timestamp.to_string())
-            .finalize();
-        match str::from_utf8(hash.as_slice()) {
-            Ok(v) => v,
-            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-        }.to_string()
-    }
-
+    // place order buy
     pub fn order_buy(&mut self, seller_id:AccountId, amount: Balance){
-        // Check account of seller
+        // Check account of seller exist
         let account_seller_got = self.accounts.get(&seller_id);
-        assert!(account_seller_got.is_some(), "seller account is not exist!");
+        assert!(account_seller_got.is_some(), "Seller's account does not exist!");
         let mut account_seller = account_seller_got.unwrap();
-        assert!(account_seller.available > amount, "nguoi ban khong du so du");
+
+        // check the amount is valid (> 0 and < seller's balance) 
+        assert!(amount > 0, "Invalid amount, must be greater than 0 ");
+        assert!(account_seller.available > amount, "Invalid amount, must be less than seller balance available");
         account_seller.available = account_seller.available - amount;
-        
-        
-        // check account of buyer
+                
+        // check account of buyer exist
         let buyer_id = env::signer_account_id();
         let account_buyer_got = self.accounts.get(&buyer_id);
         assert!(account_buyer_got.is_some(), "buyer account is not exist!");
         let mut account_buyer = account_buyer_got.unwrap();
+        
         // create transaction
         let tx = SimpleP2P::get_hash(&buyer_id,&seller_id,&amount);
         let history = History{
@@ -176,7 +174,7 @@ impl SimpleP2P {
             state: "init".to_string(),
         };
 
-        // update into contract
+        // update balance of seller, buyer, transaction's history 
         account_seller.history_sell.push(&tx);
         account_buyer.history_buy.push(&tx);
         self.historys.insert(&tx,&history);
@@ -184,22 +182,25 @@ impl SimpleP2P {
         self.accounts.insert(&buyer_id,&account_buyer);
     }
 
+    // Buyer confirms that money has been sent 
     pub fn confirm_sent(&mut self, tx:String){
         let mut transaction = self.get_transaction(&tx);
-        assert!(transaction.state == "init".to_string(), "buyer confirmed đã gửi tiền rồi");
-        assert!(env::signer_account_id() == transaction.buyer, "chỉ người mua mới được kí cái này");
+        assert!(transaction.state == "init".to_string(), "Previously confirmed deposit");
+        assert!(env::signer_account_id() == transaction.buyer, "Only buyer can confirm sent");
         
+        // update state of transaction
         transaction.state = "processing".to_string();
         self.historys.insert(&tx, &transaction);
     }
 
+    // Seller confirms receipt of the funds and the transaction is done 
     pub fn confirm_received(&mut self, tx: String){
         let mut transaction = self.get_transaction(&tx);
-        assert!(transaction.state != "init".to_string(), "người mua chưa gửi tiền");
-        assert!(transaction.state == "processing".to_string(), "giao dịch đã hoan thanh");
-        assert!(env::signer_account_id() == transaction.seller, "chỉ người bán mới đực kí cái này");
+        assert!(transaction.state != "init".to_string(), "Buyer has not confirmed sent");
+        assert!(transaction.state == "processing".to_string(), "The transaction has ended");
+        assert!(env::signer_account_id() == transaction.seller, "Only the seller can confirm received");
 
-        // update seller's 
+        // update seller's balance
         let seller_id = transaction.seller.clone();
         let mut account_seller = self.accounts.get(&seller_id).unwrap();
         account_seller.balance = account_seller.balance - transaction.amount;
@@ -212,54 +213,56 @@ impl SimpleP2P {
         // update state of transaction
         transaction.state = "success".to_string();
 
-        // update contract
         self.historys.insert(&tx, &transaction);
         self.accounts.insert(&seller_id,&account_seller);
         self.accounts.insert(&buyer_id,&account_buyer);
     }
 
+    // Buyer cancels buy order 
     pub fn cancel_order_buy(&mut self, tx:String){
         let mut transaction = self.get_transaction(&tx);
-        assert!(transaction.state == "init".to_string(), "bạn đã chuyển tiền, nếu huyer giao dịch thì có thể mất số tiền");
-        assert!(env::signer_account_id() == transaction.buyer, "chỉ người mua mới được hủy cái này");
+        assert!(transaction.state != "processing".to_string(),"You have transferred the money, if you cancel the buy order, you may lose your money");
+        assert!(transaction.state != "cancel".to_string(), "The transaction has been canceled");
+        assert!(transaction.state != "success".to_string(), "The transaction has been completed");
+        assert!(env::signer_account_id() == transaction.buyer, "Only buyer can cancel order");
 
-        // update state, balance of seller
+        // update seller available balance
         let seller_id = transaction.seller.clone();
         let mut account_seller = self.accounts.get(&seller_id).unwrap();
         account_seller.available = account_seller.available + transaction.amount;
 
+        // update transaction's state
         transaction.state = "cancel".to_string();
 
-        // update contract
         self.historys.insert(&tx, &transaction);
         self.accounts.insert(&seller_id,&account_seller);
     }
 
+    // Seller cancels sell order 
     pub fn cancel_order_sell(&mut self){
-        
+
     }
 
+    // Vote for seller 
     pub fn vote(&mut self, account_id:AccountId, value: i8){
         if value == 1 || value == -1{
             let sign_id = env::signer_account_id();
-            assert!(sign_id != account_id, "khoong theer tuwj vote");
+            assert!(sign_id != account_id, "Can't vote for yourself");
 
+            // check account is valid
             let account_got = self.accounts.get(&account_id);
-            assert!(account_got.is_some(),"tai khoan ban vore ko ton tai");
+            assert!(account_got.is_some(),"Account does not exist");
             let mut account = account_got.unwrap();
 
-            if value == 1{
+            if value == 1{                  // vote up
                 account.vote_up += 1;
-            }else{
+            }else{                          // vote down
                 account.vote_down += 1;
             }
-
-
-            // update contract
+            // update account's vote
             self.accounts.insert(&account_id, &account);
-        }
-        else {
-            panic!("gias trij truyeenf vao ko hoop le");
+        } else {
+            panic!("Invalid value");
         }
     }
 
@@ -275,36 +278,54 @@ impl SimpleP2P {
 
     pub fn get_transaction(&self, tx: &String)->History{
         let transaction = self.historys.get(&tx);
-        assert!(transaction.is_some(),"khong ton tai transaction");
+        assert!(transaction.is_some(),"Transaction does not exist");
         transaction.unwrap()
     }
 
+    // Get buy history of a account
     pub fn get_history_buy(&self, account_id: AccountId)->Vec<History>{
         let account_got = self.accounts.get(&account_id);
-        assert!(account_got.is_some(),"tai khoan ko ton tai");
+        assert!(account_got.is_some(),"Account does not exist");
         let account = account_got.unwrap();
-
         let history = account.history_buy;
-        let mut result = Vec::new();
 
+        let mut result = Vec::new();
         for x in history.iter() {
             result.push(self.historys.get(&x).unwrap());
         }
         result
     }
 
+    // Get sell history of a account
     pub fn get_history_sell(&self, account_id: AccountId)->Vec<History>{
         let account_got = self.accounts.get(&account_id);
-        assert!(account_got.is_some(),"tai khoan ko ton tai");
+        assert!(account_got.is_some(),"Account does not exist");
         let account = account_got.unwrap();
-
         let history = account.history_sell;
-        let mut result = Vec::new();
 
+        let mut result = Vec::new();
         for x in history.iter() {
             result.push(self.historys.get(&x).unwrap());
         }
         result
+    }
+
+    // get hash code for transaction
+    pub fn get_hash(buyer:&String, seller:&String, amount:&Balance)->String{
+        
+        let dt = Utc::now();
+        let timestamp: i64 = dt.timestamp();
+
+        let hash = Blake2s::new()
+            .chain(buyer)
+            .chain(seller)
+            .chain(amount.to_string())
+            .chain(timestamp.to_string())
+            .finalize();
+        match str::from_utf8(hash.as_slice()) {
+            Ok(v) => v,
+            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+        }.to_string()
     }
 
 }
