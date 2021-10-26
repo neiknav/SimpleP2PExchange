@@ -181,12 +181,12 @@ impl SimpleP2P {
         assert!(env::signer_account_id() == transaction.seller, "chỉ người bán mới đực kí cái này");
 
         // update seller's 
-        let seller_id = transaction.seller;
+        let seller_id = transaction.seller.clone();
         let mut account_seller = self.accounts.get(&seller_id).unwrap();
         account_seller.balance = account_seller.balance - transaction.amount;
         
         // update buyer's balance
-        let buyer_id = transaction.buyer;
+        let buyer_id = transaction.buyer.clone();
         let mut account_buyer = self.accounts.get(&buyer_id).unwrap();
         account_buyer.balance = account_buyer.balance + transaction.amount;
         
@@ -199,12 +199,25 @@ impl SimpleP2P {
         self.accounts.insert(&buyer_id,&account_buyer);
     }
 
-    pub fn cancel_order_buy(&mut self){
+    pub fn cancel_order_buy(&mut self, tx:String){
+        let mut transaction = self.get_transaction(&tx);
+        assert!(transaction.state == "init".to_string(), "bạn đã chuyển tiền, nếu huyer giao dịch thì có thể mất số tiền");
+        assert!(env::signer_account_id() == transaction.buyer, "chỉ người mua mới được hủy cái này");
 
+        // update state, balance of seller
+        let seller_id = transaction.seller.clone();
+        let mut account_seller = self.accounts.get(&seller_id).unwrap();
+        account_seller.available = account_seller.available + transaction.amount;
+
+        transaction.state = "cancel".to_string();
+
+        // update contract
+        self.historys.insert(&tx, &transaction);
+        self.accounts.insert(&seller_id,&account_seller);
     }
 
-    pub fn cancel_order_sell(&mut self, amount:Balance){
-
+    pub fn cancel_order_sell(&mut self){
+        
     }
 
     pub fn vote(&mut self, account_id:AccountId, value: u8){
