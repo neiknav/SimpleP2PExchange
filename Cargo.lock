@@ -9,16 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 
 [[package]]
-name = "SimpleP2PExchange"
-version = "0.1.0"
-dependencies = [
- "blake2",
- "chrono",
- "near-sdk",
- "uint",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -493,6 +483,16 @@ dependencies = [
  "digest 0.8.1",
  "keccak",
  "opaque-debug 0.2.3",
+]
+
+[[package]]
+name = "simple_p2p_exchange"
+version = "0.1.0"
+dependencies = [
+ "blake2",
+ "chrono",
+ "near-sdk",
+ "uint",
 ]
 
 [[package]]

@@ -266,15 +266,45 @@ impl SimpleP2P {
         }
     }
 
-    // pub fn get_order_sell(&self)->Vec<SellInformation>{
+    // show all accounts with sell orders 
+    pub fn get_order_sell(&self)->Vec<SellInformation>{
+        let accounts = self.accounts.values();
+        let mut result = Vec::new();
         
-    // }
+        // add accounts with available balance > 0
+        for x in accounts{
+            if x.available > 0{ 
+                let tmp = SellInformation{
+                    balance: x.balance, 
+                    available: x.available,
+                    price: x.price,
+                    bank_number: x.bank_number,
+                    bank_name: x.bank_name,
+                    vote_up: x.vote_up,
+                    vote_down: x.vote_down,
+                };
+                result.push(tmp);
+            }
+        }
+        result
+    }
 
-    // pub fn get_account(&self, account_id: AccountId)->AccountInformation{
-    //     let account_got = self.accounts.get(&account_id);
-    //     assert!(account_got.is_some(), "Account is not exist!");
-    //     account_got.unwrap()
-    // }
+    // get information of user
+    pub fn get_account(&self, account_id: AccountId)->SellInformation{
+        let account_got = self.accounts.get(&account_id);
+        assert!(account_got.is_some(), "Account does not exist");
+        let account = account_got.unwrap();
+
+        SellInformation{
+            balance: account.balance, 
+            available: account.available,
+            price: account.price,
+            bank_number: account.bank_number,
+            bank_name: account.bank_name,
+            vote_up: account.vote_up,
+            vote_down: account.vote_down,
+        }
+    }
 
     pub fn get_transaction(&self, tx: &String)->History{
         let transaction = self.historys.get(&tx);
