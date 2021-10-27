@@ -4,6 +4,7 @@ use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     env, near_bindgen,AccountId, Balance,
     collections::{ UnorderedMap, Vector,LookupMap },
+    Promise,
     // json_types::{ U128},
 };
 use chrono::Utc;
@@ -105,7 +106,7 @@ impl SimpleP2P {
     pub fn withdraw(&mut self, amount: Balance){
         let account_id = env::signer_account_id();
         let account_got = self.accounts.get(&account_id);
-        assert(account_got.is_some(),"Account does not exist, deposit some money to create an account");
+        assert!(account_got.is_some(),"Account does not exist, deposit some money to create an account");
         let mut account = account_got.unwrap();
         assert!(account.balance >= amount, "insufficient fund");
 
