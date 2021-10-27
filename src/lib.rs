@@ -14,6 +14,7 @@ use std::str;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+const ONE_NEAR:u128 = 1_000_000_000_000_000_000_000_000;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct AccountInformation {
@@ -105,17 +106,17 @@ impl SimpleP2P {
     }
 
     // withdraw money to near testnet wallet
-    pub fn withdraw(&mut self, amount: Balance){
+    pub fn withdraw(&mut self, amount: u128){
         let account_id = env::signer_account_id();
         let account_got = self.accounts.get(&account_id);
         assert!(account_got.is_some(),"Account does not exist, deposit some money to create an account");
         let mut account = account_got.unwrap();
-        assert!(account.balance >= amount, "insufficient fund");
+        assert!(account.balance >= amount * ONE_NEAR, "insufficient fund");
 
         // update balance and transfer to near account
-        account.balance = account.balance - amount;
+        account.balance = account.balance - amount * ONE_NEAR;
         self.accounts.insert(&account_id,&account);
-        Promise::new(account_id).transfer(amount);
+        Promise::new(account_id).transfer(amount * ONE_NEAR);
     }
 
     // set bank number and bank name as payment method
@@ -134,7 +135,7 @@ impl SimpleP2P {
     }
 
     // place order sell
-    pub fn order_sell(&mut self, amount: Balance, price: Balance){
+    pub fn order_sell(&mut self, amount: u128, price: u128){
         // check amount and price must > 0
         assert!(amount > 0, "Amount must > 0");
         assert!(price > 0, "Price must > 0");
@@ -146,20 +147,20 @@ impl SimpleP2P {
         
         // check enough balance
         let mut account_information = account_got.unwrap();
-        assert!(account_information.balance > amount, "Insufficient balance to order sell");
+        assert!(account_information.balance > amount * ONE_NEAR, "Insufficient balance to order sell");
         
         // check the account that has set the payment method 
         assert!(account_information.bank_number != "".to_string(),"Must set payment method");
         
         // update sell order
-        account_information.balance = account_information.balance - amount;
-        account_information.available = account_information.available +amount;
+        account_information.balance = account_information.balance - amount * ONE_NEAR;
+        account_information.available = account_information.available + amount * ONE_NEAR;
         account_information.price = price;
         self.accounts.insert(&account_id, &account_information);
     }
 
     // place order buy
-    pub fn order_buy(&mut self, seller_id:AccountId, amount: Balance){
+    pub fn order_buy(&mut self, seller_id:AccountId, amount: u128){
         // Check account of seller exist
         let account_seller_got = self.accounts.get(&seller_id);
         assert!(account_seller_got.is_some(), "Seller's account does not exist!");
@@ -167,8 +168,8 @@ impl SimpleP2P {
 
         // check the amount is valid (> 0 and < seller's balance) 
         assert!(amount > 0, "Invalid amount, must be greater than 0 ");
-        assert!(account_seller.available > amount, "Invalid amount, must be less than seller balance available");
-        account_seller.available = account_seller.available - amount;
+        assert!(account_seller.available > amount * ONE_NEAR, "Invalid amount, must be less than seller balance available");
+        account_seller.available = account_seller.available - amount * ONE_NEAR;
                 
         // check account of buyer exist
         let buyer_id = env::signer_account_id();
@@ -181,7 +182,7 @@ impl SimpleP2P {
         let history = History{
             buyer: buyer_id.clone(),
             seller: seller_id.clone(),
-            amount: amount,
+            amount: amount * ONE_NEAR,
             price: account_seller.price,
             value: amount * account_seller.price,
             state: "init".to_string(),
@@ -301,8 +302,8 @@ impl SimpleP2P {
         for x in accounts{
             if x.available > 0{ 
                 let tmp = SellInformation{
-                    balance: x.balance, 
-                    available: x.available,
+                    balance: x.balance / ONE_NEAR, 
+                    available: x.available / ONE_NEAR,
                     price: x.price,
                     bank_number: x.bank_number,
                     bank_name: x.bank_name,
@@ -322,8 +323,8 @@ impl SimpleP2P {
         let account = account_got.unwrap();
 
         SellInformation{
-            balance: account.balance, 
-            available: account.available,
+            balance: account.balance / ONE_NEAR, 
+            available: account.available / ONE_NEAR,
             price: account.price,
             bank_number: account.bank_number,
             bank_name: account.bank_name,
