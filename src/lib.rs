@@ -102,9 +102,17 @@ impl SimpleP2P {
     }
 
     // withdraw money to near testnet wallet
-    #[payable]
-    pub fn withdraw(&mut self){
+    pub fn withdraw(&mut self, amount: Balance){
+        let account_id = env::signer_account_id();
+        let account_got = self.accounts.get(&account_id);
+        assert(account_got.is_some(),"Account does not exist, deposit some money to create an account");
+        let mut account = account_got.unwrap();
+        assert!(account.balance >= amount, "insufficient fund");
 
+        // update balance and transfer to near account
+        account.balance = account.balance - amount;
+        self.accounts.insert(&account_id,&account);
+        Promise::new(account_id).transfer(amount);
     }
 
     // set bank number and bank name as payment method
@@ -240,7 +248,20 @@ impl SimpleP2P {
 
     // Seller cancels sell order 
     pub fn cancel_order_sell(&mut self){
+        // get signer account
+        let account_id = env::signer_account_id();
+        let account_got = self.accounts.get(&account_id);
+        assert!(account_got.is_some(), "Account does not exist");
+        let mut account = account_got.unwrap();
 
+        // check if user account has sell order? 
+        assert!(account.available > 0, "Account don't have order sell");
+
+        // update state of account
+        account.available = 0;
+        account.price = 0;
+
+        self.accounts.insert(&account_id, &account);
     }
 
     // Vote for seller 
