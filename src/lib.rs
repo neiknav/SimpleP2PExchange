@@ -53,6 +53,8 @@ pub struct History {
     pub buyer: AccountId,   // id of buyer
     pub seller: AccountId,  // id of seller
     pub amount: Balance,    // transaction amount 
+    pub price: Balance,
+    pub value: Balance,
     pub state: String,      // init, processing, cancel, success,
 }
 
@@ -180,6 +182,8 @@ impl SimpleP2P {
             buyer: buyer_id.clone(),
             seller: seller_id.clone(),
             amount: amount,
+            price: account_seller.price,
+            value: amount * account_seller.price,
             state: "init".to_string(),
         };
 
