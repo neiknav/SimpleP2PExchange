@@ -17,11 +17,11 @@ The contract code lives in the `/src/lib.rs`
 About Contract
 ===================
 
-It's need to be mentioned that it is a pure dapp project, which means there is no centralized backend nor data server, all persistent information is stored and managed on NEAR chain by a contract.
+(It's need to be mentioned that it is a pure dapp project, which means there is no centralized backend nor data server, all persistent information is stored and managed on NEAR chain by a contract.)
 
 ## Contract Structure
 
-The structure of the contract include: `accounts` is an UnorderedMap that maps each `account_id` to that person's account, `historys` is a LookupMap that maps from `tx` (hashcode) to the transaction `history`
+Contract named: `SimpleP2P`. The structure of the contract include: `accounts` is an UnorderedMap that maps each account_id to that person's account, `historys` is a LookupMap that maps from tx (hashcode) to the transaction history
 ```rust
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -31,7 +31,7 @@ pub struct SimpleP2P {
 }
 ```
 
-Information about a user's account, including: Balance, Available, Selling Price, Trade history, Payment method, rating
+Struct named 'AccountInformation': Information about a user's account, including: Balance, Available, Selling Price, Trade history, Payment method, rating
 ```rust
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct AccountInformation {
@@ -50,7 +50,7 @@ pub struct AccountInformation {
 }
 ```
 
-Information of sell orders, including: Seller id, Balance, Available, Selling price, Payment method, Rating
+Struct name `SellInformation`: Used to display information, not to store. information of sell orders, including: Seller id, Balance, Available, Selling price, Payment method, Rating
 ```rust
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
@@ -67,7 +67,7 @@ pub struct SellInformation {
 }
 ```
 
-History of transactions, including: buyer/seller id, price(in dollars), amount, value(in dollars), state of the transaction
+Struct named `History`: History of transactions, including: buyer/seller id, price(in dollars), amount, value(in dollars), state of the transaction
 ```rust
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
@@ -81,11 +81,7 @@ pub struct History {
 }
 ```
 
-
-
-
-## Contract Interface
-
+## Implement contract
 
 ```rust
 #[near_bindgen]
