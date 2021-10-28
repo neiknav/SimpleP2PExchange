@@ -177,8 +177,10 @@ Initialize the contract
 
     ./call.sh new '{}'	
 
-Chuân bị tài khoản
+Prepare seller's account
 ------------------
+
+To be able to place a sell order, the seller must have a balance in the account and add a payment method
 
 Create and deposit a amount of money into the seller's account
 
