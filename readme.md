@@ -6,7 +6,7 @@ Simple Peer-to-Peer Exchange On NEAR
 ## How it works?
 
 
-cvbncbncmvb
+See how p2p exchange work [here](https://docs.google.com/presentation/d/1NUWx2-fmpYr7vTLZGqELqE8-QGx1m7TF8VfpZViYvbA/edit?usp=sharing).
 
 Exploring The Code
 ==================
