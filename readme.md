@@ -188,7 +188,11 @@ Create and deposit a amount of money into the seller's account
 
 Seller set payment method, This will be the method for the buyer to proceed with the payment, so please check it is correct
 
-    ./sellercall.sh set_bank_account '{"number":"123456789", "bank_name":"MB Bank"}'	
+    ./sellercall.sh set_bank_account '{"number":"123456789", "bank_name":"MB Bank"}'
+
+Create account for buyer (have to deposit some Near)
+
+    ./buyercall.sh deposit '{}' --amount 1
 
 Example
 ----------
@@ -217,14 +221,14 @@ View transaction status
 
     ./buyercall.sh get_transaction '{"tx":"something"}'
 
+Rating for seller
+
+    ./buyercall.sh vote '{"account_id":"seller1.testnet", "value":1}'
+
 Check account information
 
     ./call.sh get_account '{"account_id":"seller1.testnet"}'
     ./call.sh get_account '{"account_id":"buyer1.testnet"}'
-
-Rating for seller
-
-    ./buyercall.sh vote '{"account_id":"seller1.testnet", "value":1}'
 
 The seller cancels the sell order and withdraws the money to his account
 
