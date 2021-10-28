@@ -144,20 +144,25 @@ Get Started
 ===========
 
 Note before calling method from an account, log in with the command
+    
     near login
 
 Preparation
 ------------
 
 I created 3 accounts: `deploy.p2pexchange.testnet` for contract deployment, `seller1.testnet` for seller account and `buyer1.testnet` for buyer account.
+
 I created sub account `deploy.p2pexchange.testnet` for deploy contract, with command
+
     near create-account deploy.p2pexchange.testnet --masterAccount p2pexchange.testnet
 
 Setting environment
 --------------------
 
-I have created 3 files `call.sh` (call from contract creator), `sellercall.sh` (call from seller), `buyercall.sh` (call from buyer), which uses the variables DEPLOY_ID, SELLER_ID and BUYER_ID.
+I have created 3 files `call.sh` (call from contract creator), `sellercall.sh` (call from seller), `buyercall.sh` (call from buyer), which uses the variables `DEPLOY_ID`, `SELLER_ID` and `BUYER_ID`.
+
 Use the following commands to create the above variables
+
     export DEPLOY_ID=deploy.p2pexchange.testnet
     export BUYER_ID=buyer1.testnet
     export SELLER_ID=seller1.testnet
@@ -167,50 +172,65 @@ Deploy contract
 
     ./build.sh
     ./deploy.sh
+
 Initialize the contract
+
     ./call.sh new '{}'	
 
 Chuân bị tài khoản
 ------------------
 
 Create and deposit a amount of money into the seller's account
+
     ./sellercall.sh deposit '{}' --amount 10
+
 Seller set payment method, This will be the method for the buyer to proceed with the payment, so please check it is correct
+
     ./sellercall.sh set_bank_account '{"number":"123456789", "bank_name":"MB Bank"}'	
 
 Example
 ----------
 
 First, the seller places a sell order 
+
     ./sellercall.sh order_sell '{"amount": 10, "price":2}'
 
 Buyer check information about available sell orders
+
     ./buyercall.sh get_order_sell '{}'
 
 Buyer places a buy order
+
     ./buyercall.sh order_buy '{"seller_id":"seller1.testnet", "amount":5}'
 
-Buyer confirm sent money
+Buyer confirm sent 
+
     ./buyercall.sh confirm_sent '{"tx": "something"}'
 
 Seller confirm received money
+
     ./sellercall.sh confirm_received '{"tx":"something"}'
 
 View transaction status
+
     ./buyercall.sh get_transaction '{"tx":"something"}'
 
 Check account information
+
     ./call.sh get_account '{"account_id":"seller1.testnet"}'
     ./call.sh get_account '{"account_id":"buyer1.testnet"}'
 
 Rating for seller
+
     ./buyercall.sh vote '{"account_id":"seller1.testnet", "value":1}'
 
 The seller cancels the sell order and withdraws the money to his account
+
     ./sellercall.sh cancel_order_sell '{}'
     ./sellercall.sh withdraw '{"amount":5}'
 
 The buyer withdraw the money to his account
+
     ./buyercall.sh withdraw '{"amount":5}'
 
 Troubleshooting
