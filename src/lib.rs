@@ -5,11 +5,10 @@ use near_sdk::{
     env, near_bindgen,AccountId, Balance,
     collections::{ UnorderedMap, Vector,LookupMap },
     Promise,
-    // json_types::{ U128},
 };
-use chrono::Utc;
-use blake2::{Blake2s, Digest};
 use std::str;
+use digest::Digest;
+use sha2::Sha256;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -177,7 +176,7 @@ impl SimpleP2P {
         let mut account_buyer = account_buyer_got.unwrap();
         
         // create transaction
-        let tx = SimpleP2P::get_hash(&buyer_id,&seller_id,&amount);
+        let tx = SimpleP2P::compute_hash::<Sha256>(&buyer_id,&seller_id,&amount);
         let history = History{
             buyer: buyer_id.clone(),
             seller: seller_id.clone(),
@@ -373,21 +372,18 @@ impl SimpleP2P {
     }
 
     // get hash code for transaction
-    fn get_hash(buyer:&String, seller:&String, amount:&Balance)->String{
-        
-        let dt = Utc::now();
-        let timestamp: i64 = dt.timestamp();
+    fn compute_hash<D: Digest>(buyer:&String, seller:&String, amount:&Balance) -> String
+        where digest::Output<D>: core::fmt::LowerHex
+    {
+        let height = env::block_index();
+        let ts = env::block_timestamp();
 
-        let hash = Blake2s::new()
-            .chain(buyer)
-            .chain(seller)
-            .chain(amount.to_string())
-            .chain(timestamp.to_string())
-            .finalize();
-        match str::from_utf8(hash.as_slice()) {
-            Ok(v) => v,
-            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-        }.to_string()
+        let input_data = buyer.to_owned() + seller + &amount.to_string() + &height.to_string() + &ts.to_string();
+
+        let mut hasher = D::new();
+        hasher.update(input_data.as_bytes());
+        let digest = hasher.finalize();
+        format!("{:x}", digest)
     }
 
 }
