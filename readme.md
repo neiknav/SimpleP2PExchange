@@ -135,7 +135,7 @@ impl SimpleP2P {
     pub fn get_history_sell(&self, account_id: AccountId)->Vec<History>{}
     
     // get hash code for transaction
-    pub fn get_hash(buyer:&String, seller:&String, amount:&Balance)->String{}
+    fn compute_hash<D: Digest>(buyer:&String, seller:&String, amount:&Balance->String{}
 }
 
 ```
