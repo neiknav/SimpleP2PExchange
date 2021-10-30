@@ -177,7 +177,7 @@ Initialize the contract
 
     ./call.sh new '{}'	
 
-Prepare seller's account
+Prepare seller and buyer account
 ------------------
 
 To be able to place a sell order, the seller must have a balance in the account and add a payment method
@@ -209,13 +209,17 @@ Buyer places a buy order
 
     ./buyercall.sh order_buy '{"seller_id":"seller1.testnet", "amount":5}'
 
-Buyer confirm sent 
+When a buyer places a buy order, the seller's funds are held in the p2pexchange contract.
+
+After that, the buyer relies on the seller's payment method to proceed with the payment. After payment has been made to the seller,  buyer confirm sent 
 
     ./buyercall.sh confirm_sent '{"tx": "something"}'
 
-Seller confirm received money
+when received the money, Seller confirm received money
 
     ./sellercall.sh confirm_received '{"tx":"something"}'
+
+When both buyer and seller confirm send and receive money successfully, the seller's money held in the contract will be released to the buyer, the transaction ends.
 
 View transaction status
 
